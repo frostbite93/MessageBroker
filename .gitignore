@@ -1,0 +1,7 @@
+/.vs
+/MessageBrokerApi/.vs
+/MessageBrokerApi/bin
+/MessageBrokerApi/obj
+/Tests/obj
+/Tests/bin
+/MessageBrokerApi/*.user
