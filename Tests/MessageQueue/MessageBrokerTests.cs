@@ -1,10 +1,11 @@
-﻿using Moq;
-using Microsoft.Extensions.Logging;
-using MessageBrokerApi.MessageQueue.Services;
+﻿using MessageBrokerApi.Common.Configuration;
 using MessageBrokerApi.Common.Hashing;
-using MessageBrokerApi.Common.Configuration;
+using MessageBrokerApi.Common.Messages;
 using MessageBrokerApi.MessageQueue.Interfaces;
+using MessageBrokerApi.MessageQueue.Services;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace Tests.MessageQueue
 {
@@ -46,12 +47,8 @@ namespace Tests.MessageQueue
 
             object dummy;
             _mockCache.Setup(x => x.TryGetValue(It.IsAny<object>(), out dummy)).Returns(false);
-
-            _mockStorage.Setup(x => x.WriteRequestAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-                .Returns(Task.CompletedTask);
-
-            _mockStorage.Setup(x => x.WaitForResponseAsync(It.IsAny<string>()))
-               .ThrowsAsync(new TimeoutException("Response not received in time."));
+            _mockStorage.Setup(x => x.WriteRequestAsync(It.IsAny<RequestMessage>())).Returns(Task.CompletedTask);
+            _mockStorage.Setup(x => x.WaitForResponseAsync(It.IsAny<string>())).ThrowsAsync(new TimeoutException("Response not received in time."));
 
             // Act & Assert
             await Assert.ThrowsAsync<TimeoutException>(() =>
@@ -69,12 +66,8 @@ namespace Tests.MessageQueue
 
             object dummy;
             _mockCache.Setup(x => x.TryGetValue(It.IsAny<object>(), out dummy)).Returns(false);
-
-            _mockStorage.Setup(x => x.WriteRequestAsync(key, method, path, body))
-                .Returns(Task.CompletedTask);
-
-            _mockStorage.Setup(x => x.WaitForResponseAsync(It.IsAny<string>()))
-                .ReturnsAsync((500, "Invalid response format"));
+            _mockStorage.Setup(x => x.WriteRequestAsync(It.IsAny<RequestMessage>())).Returns(Task.CompletedTask);
+            _mockStorage.Setup(x => x.WaitForResponseAsync(It.IsAny<string>())).ReturnsAsync((500, "Invalid response format"));
 
             // Act
             var result = await _broker.SendAndWaitAsync(method, path, body);
@@ -95,8 +88,7 @@ namespace Tests.MessageQueue
 
             object dummy;
             _mockCache.Setup(x => x.TryGetValue(It.IsAny<object>(), out dummy)).Returns(false);
-
-            _mockStorage.Setup(x => x.WriteRequestAsync(key, method, path, body)).Returns(Task.CompletedTask);
+            _mockStorage.Setup(x => x.WriteRequestAsync(It.IsAny<RequestMessage>())).Returns(Task.CompletedTask);
 
             // Act
             try
@@ -106,7 +98,7 @@ namespace Tests.MessageQueue
             catch (TimeoutException) { }
 
             // Assert
-            _mockStorage.Verify(x => x.WriteRequestAsync(key, method, path, body), Times.Once);
+            _mockStorage.Verify(x => x.WriteRequestAsync(It.IsAny<RequestMessage>()), Times.Once);
         }
     }
 }

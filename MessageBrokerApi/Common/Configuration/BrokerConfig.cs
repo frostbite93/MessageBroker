@@ -16,5 +16,6 @@
         public int BrokerTimeoutSec => _config.GetValue("Broker:TimeoutSec", 90);
         public int BrokerResponseCacheLifetimeSeconds => _config.GetValue("Broker:ResponseCacheLifetimeSeconds", 30);
         public string BrokerBackendUrl => _config.GetValue<string>("Broker:BackendUrl") ?? "https://localhost:64172";
+        public string BrokerStorageType => _config.GetValue<string>("Broker:StorageType") ?? "File";
     }
 }

@@ -2,6 +2,7 @@ using MessageBrokerApi.Backend.Interfaces;
 using MessageBrokerApi.Backend.Services;
 using MessageBrokerApi.Common.Configuration;
 using MessageBrokerApi.Common.Hashing;
+using MessageBrokerApi.MessageQueue.Extensions;
 using MessageBrokerApi.MessageQueue.Interfaces;
 using MessageBrokerApi.MessageQueue.Services;
 using MessageBrokerApi.MessageQueue.Storages;
@@ -16,6 +17,7 @@ builder.Services.AddSingleton<IMessageStorage, FileMessageStorage>();
 builder.Services.AddSingleton<IMessageBroker, MessageBroker>();
 builder.Services.AddSingleton<IMessageStorageProvider, FileMessageStorageProvider>();
 builder.Services.AddHttpClient();
+builder.Services.AddMessageStorage();
 
 var config = builder.Configuration;
 bool runMessageBrokerConsumer = config.GetValue<bool>("RunServices:RunMessageBrokerConsumer");

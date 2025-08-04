@@ -1,5 +1,6 @@
 ﻿using MessageBrokerApi.Common.Configuration;
 using MessageBrokerApi.Common.Hashing;
+using MessageBrokerApi.Common.Messages;
 using MessageBrokerApi.MessageQueue.Interfaces;
 using Microsoft.Extensions.Caching.Memory;
 using System.Collections.Concurrent;
@@ -51,7 +52,15 @@ namespace MessageBrokerApi.MessageQueue.Services
 
             try
             {
-                await _storage.WriteRequestAsync(key, method, path, body);
+                var request = new RequestMessage
+                {
+                    Key = key,
+                    Method = method,
+                    Path = path,
+                    Body = body
+                };
+
+                await _storage.WriteRequestAsync(request);
                 var result = await _storage.WaitForResponseAsync(key);
 
                 var cacheEntry = _cache.CreateEntry(key);

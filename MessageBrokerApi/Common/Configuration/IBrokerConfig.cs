@@ -9,5 +9,6 @@
         int BrokerTimeoutSec { get; }
         int BrokerResponseCacheLifetimeSeconds { get; }
         string BrokerBackendUrl { get; }
+        string BrokerStorageType { get; }
     }
 }

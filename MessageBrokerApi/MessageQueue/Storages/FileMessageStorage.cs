@@ -1,9 +1,10 @@
 ﻿using MessageBrokerApi.Common.Configuration;
+using MessageBrokerApi.Common.Messages;
 using MessageBrokerApi.MessageQueue.Interfaces;
 
 namespace MessageBrokerApi.MessageQueue.Storages
 {
-    public class FileMessageStorage : IMessageStorage
+    public sealed class FileMessageStorage : IMessageStorage
     {
         private readonly string _baseDir;
         private readonly TimeSpan _timeout;
@@ -19,9 +20,9 @@ namespace MessageBrokerApi.MessageQueue.Storages
             _logger = logger;
         }
 
-        public async Task WriteRequestAsync(string key, string method, string path, string body)
+        public async Task WriteRequestAsync(RequestMessage message)
         {
-            var reqPath = Path.Combine(_baseDir, $"{key}.req");
+            var reqPath = Path.Combine(_baseDir, $"{message.Key}.req");
 
             if (File.Exists(reqPath))
             {
@@ -33,9 +34,9 @@ namespace MessageBrokerApi.MessageQueue.Storages
             {
                 using var stream = new FileStream(reqPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
                 using var writer = new StreamWriter(stream);
-                await writer.WriteLineAsync(method);
-                await writer.WriteLineAsync(path);
-                await writer.WriteAsync(body);
+                await writer.WriteLineAsync(message.Method);
+                await writer.WriteLineAsync(message.Path);
+                await writer.WriteAsync(message.Body);
                 _logger.LogInformation("Request file written: {Path}", reqPath);
             }
             catch (IOException ex)
