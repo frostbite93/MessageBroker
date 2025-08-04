@@ -1,6 +1,7 @@
 ﻿using MessageBrokerApi.Common.Configuration;
 using MessageBrokerApi.Common.Hashing;
 using MessageBrokerApi.MessageQueue.Interfaces;
+using Microsoft.Extensions.Caching.Memory;
 using System.Collections.Concurrent;
 
 namespace MessageBrokerApi.MessageQueue.Services
@@ -11,15 +12,19 @@ namespace MessageBrokerApi.MessageQueue.Services
         private readonly IHashGenerator _hashGen;
         private readonly ILogger<MessageBroker> _logger;
         private readonly bool _useAdvanced;
+        private readonly IMemoryCache _cache;
+        private readonly TimeSpan _cacheLifetime;
 
         private readonly ConcurrentDictionary<string, RequestState> _requests = new();
 
-        public MessageBroker(IBrokerConfig config, IHashGenerator hashGen, ILogger<MessageBroker> logger, IMessageStorage storage)
+        public MessageBroker(IBrokerConfig config, IHashGenerator hashGen, ILogger<MessageBroker> logger, IMessageStorage storage, IMemoryCache cache)
         {
             _storage = storage;
             _hashGen = hashGen;
             _logger = logger;
             _useAdvanced = config.BrokerAdvancedMode;
+            _cache = cache;
+            _cacheLifetime = TimeSpan.FromSeconds(config.BrokerResponseCacheLifetimeSeconds);
         }
 
         public async Task<(int StatusCode, string Body)> SendAndWaitAsync(string method, string path, string body)
@@ -30,6 +35,12 @@ namespace MessageBrokerApi.MessageQueue.Services
 
             var key = _hashGen.ComputeHash(keyInput);
             _logger.LogInformation("Generated key: {Key} for request [{Method}] {Path}", key, method, path);
+
+            if (_cache.TryGetValue<(int, string)>(key, out var cachedResponse))
+            {
+                _logger.LogInformation("Cache hit for key: {Key}", key);
+                return cachedResponse;
+            }
 
             var state = _requests.GetOrAdd(key, _ => new RequestState());
             var waitersCount = state.IncrementWaiters();
@@ -42,6 +53,12 @@ namespace MessageBrokerApi.MessageQueue.Services
             {
                 await _storage.WriteRequestAsync(key, method, path, body);
                 var result = await _storage.WaitForResponseAsync(key);
+
+                var cacheEntry = _cache.CreateEntry(key);
+                cacheEntry.AbsoluteExpirationRelativeToNow = _cacheLifetime;
+                cacheEntry.Value = result;
+                cacheEntry.Dispose();
+
                 return result;
             }
             finally
@@ -53,6 +70,7 @@ namespace MessageBrokerApi.MessageQueue.Services
                 {
                     _storage.CleanUp(key);
                     _requests.TryRemove(key, out _);
+                    _cache.Remove(key);
                 }
 
                 state.Semaphore.Release();

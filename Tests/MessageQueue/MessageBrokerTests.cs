@@ -4,6 +4,7 @@ using MessageBrokerApi.MessageQueue.Services;
 using MessageBrokerApi.Common.Hashing;
 using MessageBrokerApi.Common.Configuration;
 using MessageBrokerApi.MessageQueue.Interfaces;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Tests.MessageQueue
 {
@@ -14,22 +15,25 @@ namespace Tests.MessageQueue
         private readonly Mock<IBrokerConfig> _mockConfig;
         private readonly Mock<IMessageStorage> _mockStorage;
         private readonly Mock<ILogger<MessageBroker>> _mockLogger;
+        private readonly Mock<IMemoryCache> _mockCache;
+        private readonly Mock<ICacheEntry> _mockCacheEntry;
         private readonly MessageBroker _broker;
 
         public MessageBrokerTests()
         {
             _mockConfig = new Mock<IBrokerConfig>();
             _mockConfig.SetupGet(c => c.BrokerAdvancedMode).Returns(true);
+            _mockConfig.SetupGet(c => c.BrokerResponseCacheLifetimeSeconds).Returns(30);
 
             _hashGen = new MD5HashGenerator();
-
-            _mockLogger = new Mock<ILogger<MessageBroker>>();
-
-            //_mockStorageProvider = new Mock<IMessageStorageProvider>();
             _mockStorage = new Mock<IMessageStorage>();
             _mockLogger = new Mock<ILogger<MessageBroker>>();
+            _mockCache = new Mock<IMemoryCache>();
+            _mockCacheEntry = new Mock<ICacheEntry>();
 
-            _broker = new MessageBroker(_mockConfig.Object, _hashGen, _mockLogger.Object, _mockStorage.Object);
+            _mockCache.Setup(x => x.CreateEntry(It.IsAny<object>())).Returns(_mockCacheEntry.Object);
+
+            _broker = new MessageBroker(_mockConfig.Object, _hashGen, _mockLogger.Object, _mockStorage.Object, _mockCache.Object);
         }
 
         [Fact]
@@ -39,6 +43,9 @@ namespace Tests.MessageQueue
             var method = "POST";
             var path = "/timeout";
             var body = "";
+
+            object dummy;
+            _mockCache.Setup(x => x.TryGetValue(It.IsAny<object>(), out dummy)).Returns(false);
 
             _mockStorage.Setup(x => x.WriteRequestAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
                 .Returns(Task.CompletedTask);
@@ -59,6 +66,9 @@ namespace Tests.MessageQueue
             var path = "/invalid";
             var body = "";
             var key = "invalid-key";
+
+            object dummy;
+            _mockCache.Setup(x => x.TryGetValue(It.IsAny<object>(), out dummy)).Returns(false);
 
             _mockStorage.Setup(x => x.WriteRequestAsync(key, method, path, body))
                 .Returns(Task.CompletedTask);
@@ -82,6 +92,9 @@ namespace Tests.MessageQueue
             var path = "/write-once";
             var body = "some-body";
             var key = _hashGen.ComputeHash(method + path + body);
+
+            object dummy;
+            _mockCache.Setup(x => x.TryGetValue(It.IsAny<object>(), out dummy)).Returns(false);
 
             _mockStorage.Setup(x => x.WriteRequestAsync(key, method, path, body)).Returns(Task.CompletedTask);
 

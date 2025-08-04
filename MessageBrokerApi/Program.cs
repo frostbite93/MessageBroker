@@ -8,6 +8,7 @@ using MessageBrokerApi.MessageQueue.Storages;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
+builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<IBrokerConfig, BrokerConfig>();
 builder.Services.AddSingleton<IHashGenerator, MD5HashGenerator>();
 builder.Services.AddSingleton<IBackendRequest, BackendRequest>();

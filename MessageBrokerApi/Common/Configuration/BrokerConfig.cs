@@ -14,6 +14,7 @@
         public int BrokerFileAgeThresholdMin => _config.GetValue("Broker:FileAgeThresholdMin", 5);
         public bool BrokerAdvancedMode => _config.GetValue<bool>("Broker:AdvancedMode");
         public int BrokerTimeoutSec => _config.GetValue("Broker:TimeoutSec", 90);
+        public int BrokerResponseCacheLifetimeSeconds => _config.GetValue("Broker:ResponseCacheLifetimeSeconds", 30);
         public string BrokerBackendUrl => _config.GetValue<string>("Broker:BackendUrl") ?? "https://localhost:64172";
     }
 }
